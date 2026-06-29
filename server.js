@@ -74,6 +74,22 @@ function makeSystemMsg(text) {
   return { id: crypto.randomUUID(), type: 'system', text, timestamp: Date.now() };
 }
 
+// Returns a valid image data URL, or null. Emits an error to the socket if
+// an image was provided but is too large.
+function validateImage(socket, rawImage) {
+  if (typeof rawImage !== 'string' || !rawImage.startsWith('data:image/')) return null;
+  if (rawImage.length <= MAX_IMAGE_CHARS) return rawImage;
+  socket.emit('send_error', 'That image is too large. Try a smaller one.');
+  return null;
+}
+
+function dmKey(idA, idB) {
+  return [idA, idB].sort().join(':');
+}
+
+// dmKey -> { history: [] }
+const dmThreads = new Map();
+
 function roomsSummary() {
   return Array.from(rooms.entries())
     .filter(([name, r]) => r.users.size > 0 || name === DEFAULT_ROOM)
@@ -90,6 +106,13 @@ function broadcastUserCount(roomName) {
   const r = rooms.get(roomName);
   if (!r) return;
   io.to(roomName).emit('user_count', r.users.size);
+}
+
+function broadcastRoomUsers(roomName) {
+  const r = rooms.get(roomName);
+  if (!r) return;
+  const list = Array.from(r.users.entries()).map(([id, name]) => ({ id, name }));
+  io.to(roomName).emit('room_users', list);
 }
 
 function leaveCurrentRoom(socket) {
@@ -109,6 +132,7 @@ function leaveCurrentRoom(socket) {
   }
 
   broadcastUserCount(roomName);
+  broadcastRoomUsers(roomName);
   broadcastRoomList();
 }
 
@@ -146,7 +170,16 @@ io.on('connection', (socket) => {
     io.to(roomName).emit('message', sysMsg);
 
     broadcastUserCount(roomName);
+    broadcastRoomUsers(roomName);
     broadcastRoomList();
+  });
+
+  socket.on('get_room_users', () => {
+    const roomName = socket.data.room;
+    if (!roomName) return;
+    const r = rooms.get(roomName);
+    if (!r) return;
+    socket.emit('room_users', Array.from(r.users.entries()).map(([id, name]) => ({ id, name })));
   });
 
   socket.on('chat_message', (payload = {}) => {
@@ -156,15 +189,7 @@ io.on('connection', (socket) => {
     if (!r) return;
 
     const text = String(payload.text || '').slice(0, 500).trim();
-    let image = null;
-    if (typeof payload.image === 'string' && payload.image.startsWith('data:image/')) {
-      if (payload.image.length <= MAX_IMAGE_CHARS) {
-        image = payload.image;
-      } else {
-        socket.emit('send_error', 'That image is too large. Try a smaller one.');
-      }
-    }
-
+    const image = validateImage(socket, payload.image);
     if (!text && !image) return;
 
     let replyTo = null;
@@ -189,6 +214,48 @@ io.on('connection', (socket) => {
     addHistory(r, msg);
     r.lastActivity = Date.now();
     io.to(roomName).emit('message', msg);
+  });
+
+  socket.on('dm_message', (payload = {}) => {
+    const toId = String(payload.toId || '');
+    const targetSocket = io.sockets.sockets.get(toId);
+    if (!targetSocket) {
+      socket.emit('send_error', 'That person is no longer connected.');
+      return;
+    }
+
+    const text = String(payload.text || '').slice(0, 500).trim();
+    const image = validateImage(socket, payload.image);
+    if (!text && !image) return;
+
+    const msg = {
+      id: crypto.randomUUID(),
+      type: 'dm',
+      fromId: socket.id,
+      fromName: socket.data.name || 'Anonymous',
+      toId,
+      text,
+      image,
+      timestamp: Date.now(),
+    };
+
+    const key = dmKey(socket.id, toId);
+    let thread = dmThreads.get(key);
+    if (!thread) {
+      thread = { history: [] };
+      dmThreads.set(key, thread);
+    }
+    thread.history.push(msg);
+    if (thread.history.length > MAX_HISTORY) thread.history.shift();
+
+    targetSocket.emit('dm_message', msg);
+    socket.emit('dm_message', msg);
+  });
+
+  socket.on('get_dm_history', ({ withId } = {}) => {
+    const key = dmKey(socket.id, String(withId || ''));
+    const thread = dmThreads.get(key);
+    socket.emit('dm_history', { withId, history: thread ? thread.history : [] });
   });
 
   socket.on('disconnect', () => {
