@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lobby — Shared Chat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Name prompt, shown once per device until a name is saved -->
+  <div id="name-screen" class="screen">
+    <div class="card">
+      <h1>Lobby</h1>
+      <p class="sub">One room. Everyone who opens this link is in it.</p>
+      <input id="name-input" type="text" placeholder="What should we call you?" maxlength="24" autocomplete="off" />
+      <button id="join-btn">Join the room</button>
+    </div>
+  </div>
+
+  <!-- Chat screen -->
+  <div id="chat-screen" class="screen hidden">
+    <header class="chat-header">
+      <div class="header-left">
+        <span class="dot" id="status-dot"></span>
+        <h1>Lobby</h1>
+      </div>
+      <div class="header-right">
+        <span id="user-count">0 online</span>
+      </div>
+    </header>
+
+    <main id="messages" class="messages"></main>
+
+    <form id="message-form" class="composer">
+      <input id="message-input" type="text" placeholder="Type a message…" maxlength="500" autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
