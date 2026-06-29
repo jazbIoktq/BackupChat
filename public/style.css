@@ -1,16 +1,17 @@
 :root {
-  --bg: #1c1713;
-  --panel: #241e18;
-  --felt: #0e0c0a;
-  --cream: #f3e8d8;
-  --cream-dim: #c9bba5;
-  --dim: #8c8071;
-  --brass: #c98a3e;
-  --brass-light: #e2a35c;
-  --brass-dim: #6b4f2c;
-  --bubble-other: #2e2620;
-  --bubble-me: #b9762f;
-  --danger: #a8503a;
+  --bg: #14161a;
+  --panel: #1c1f26;
+  --felt: #111317;
+  --cream: #e9eaee;
+  --cream-dim: #c2c5cc;
+  --dim: #8c92a3;
+  --brass: #3a6df0;
+  --brass-light: #5b85f5;
+  --brass-dim: #2a3550;
+  --bubble-other: #262a33;
+  --bubble-me: #3a6df0;
+  --online: #3ad17a;
+  --danger: #d9534f;
   --radius: 16px;
 
   --font-display: "Fraunces", Georgia, serif;
@@ -54,7 +55,7 @@ button:focus-visible, input:focus-visible {
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(ellipse 600px 300px at 50% 0%, rgba(201,138,62,0.10), transparent 70%),
+    radial-gradient(ellipse 600px 300px at 50% 0%, rgba(58,109,240,0.08), transparent 70%),
     var(--bg);
 }
 
@@ -65,7 +66,7 @@ button:focus-visible, input:focus-visible {
   width: 100%;
   max-width: 400px;
   box-shadow: 0 24px 70px rgba(0,0,0,0.45);
-  border: 1px solid #352b21;
+  border: 1px solid #2a2e38;
 }
 
 .sign {
@@ -79,7 +80,7 @@ button:focus-visible, input:focus-visible {
   font-size: 34px;
   letter-spacing: 0.04em;
   color: var(--brass-light);
-  text-shadow: 0 0 18px rgba(226,163,92,0.45), 0 0 2px rgba(226,163,92,0.6);
+  text-shadow: 0 0 18px rgba(58,109,240,0.45), 0 0 2px rgba(58,109,240,0.6);
 }
 
 .join-card .sub {
@@ -104,7 +105,7 @@ button:focus-visible, input:focus-visible {
   width: 100%;
   padding: 13px 14px;
   border-radius: 10px;
-  border: 1px solid #3a2f24;
+  border: 1px solid #2f333d;
   background: var(--felt);
   color: var(--cream);
   font-size: 15px;
@@ -112,7 +113,7 @@ button:focus-visible, input:focus-visible {
   margin-bottom: 16px;
 }
 
-#name-input::placeholder, #room-input::placeholder { color: #5c5040; }
+#name-input::placeholder, #room-input::placeholder { color: #5a6072; }
 
 #join-btn {
   width: 100%;
@@ -120,7 +121,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 10px;
   border: none;
   background: var(--brass);
-  color: #1c1713;
+  color: #fff;
   font-size: 15px;
   font-weight: 700;
   font-family: var(--font-body);
@@ -136,7 +137,7 @@ button:focus-visible, input:focus-visible {
   background: var(--felt);
   border-radius: 12px;
   padding: 14px 14px 6px;
-  border: 1px solid #2a221a;
+  border: 1px solid #262a33;
 }
 
 .directory-header {
@@ -152,7 +153,7 @@ button:focus-visible, input:focus-visible {
   padding: 0 2px;
 }
 
-.directory-hint { color: #4a3f31; font-size: 9.5px; }
+.directory-hint { color: #5a6072; font-size: 9.5px; }
 
 .room-list {
   display: flex;
@@ -177,7 +178,7 @@ button:focus-visible, input:focus-visible {
   color: var(--cream-dim);
 }
 
-.room-row:hover { background: #1c1712; }
+.room-row:hover { background: #20232b; }
 
 .room-num {
   color: var(--brass-dim);
@@ -201,7 +202,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .directory-empty {
-  color: #4a3f31;
+  color: #5a6072;
   font-size: 12px;
   font-family: var(--font-mono);
   padding: 10px 8px;
@@ -214,7 +215,7 @@ button:focus-visible, input:focus-visible {
   justify-content: space-between;
   padding: 14px 18px;
   background: var(--panel);
-  border-bottom: 1px solid #2e251c;
+  border-bottom: 1px solid #262a33;
   flex-shrink: 0;
 }
 
@@ -224,8 +225,8 @@ button:focus-visible, input:focus-visible {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--brass-light);
-  box-shadow: 0 0 8px rgba(226,163,92,0.6);
+  background: var(--online);
+  box-shadow: 0 0 8px var(--online);
   flex-shrink: 0;
 }
 
@@ -269,7 +270,7 @@ button:focus-visible, input:focus-visible {
   cursor: pointer;
 }
 
-#switch-room-btn:hover { background: #2e251c; }
+#switch-room-btn:hover { background: #262a33; }
 
 .messages {
   flex: 1;
@@ -305,7 +306,7 @@ button:focus-visible, input:focus-visible {
 
 .msg-row.me .msg {
   background: var(--bubble-me);
-  color: #1c1713;
+  color: #fff;
   border-bottom-right-radius: 4px;
 }
 
@@ -383,7 +384,7 @@ button:focus-visible, input:focus-visible {
   gap: 8px;
   padding: 14px;
   background: var(--panel);
-  border-top: 1px solid #2e251c;
+  border-top: 1px solid #262a33;
   flex-shrink: 0;
 }
 
@@ -392,7 +393,7 @@ button:focus-visible, input:focus-visible {
   height: 42px;
   flex-shrink: 0;
   border-radius: 50%;
-  border: 1px solid #3a2f24;
+  border: 1px solid #2f333d;
   background: var(--felt);
   color: var(--brass-light);
   display: flex;
@@ -401,13 +402,13 @@ button:focus-visible, input:focus-visible {
   cursor: pointer;
 }
 
-.icon-btn:hover { background: #2e251c; }
+.icon-btn:hover { background: #262a33; }
 
 #message-input {
   flex: 1;
   padding: 13px 16px;
   border-radius: 24px;
-  border: 1px solid #3a2f24;
+  border: 1px solid #2f333d;
   background: var(--felt);
   color: var(--cream);
   font-size: 15px;
@@ -420,7 +421,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 24px;
   border: none;
   background: var(--brass);
-  color: #1c1713;
+  color: #fff;
   font-weight: 700;
   font-size: 14.5px;
   cursor: pointer;
@@ -436,8 +437,8 @@ button:focus-visible, input:focus-visible {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 16px;
-  background: #221b15;
-  border-top: 1px solid #2e251c;
+  background: #20232b;
+  border-top: 1px solid #262a33;
   flex-shrink: 0;
 }
 
@@ -486,4 +487,108 @@ button:focus-visible, input:focus-visible {
 @media (max-width: 480px) {
   .msg-row { max-width: 85%; }
   .msg img.msg-image { max-width: 180px; }
+}
+
+/* ---------------- People panel + DMs ---------------- */
+#people-btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--brass-dim);
+  background: none;
+  color: var(--brass-light);
+  font-size: 12px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#people-btn:hover { background: #262a33; }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10;
+}
+
+.overlay-card {
+  background: var(--panel);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 360px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2a2e38;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.5);
+}
+
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #262a33;
+}
+
+.overlay-header h2 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  margin: 0;
+  color: var(--cream);
+}
+
+.overlay-close {
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.overlay-close:hover { color: var(--cream); }
+
+.people-list {
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.person-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 10px;
+  border-radius: 10px;
+}
+
+.person-row:hover { background: #20232b; }
+
+.person-name {
+  font-size: 14px;
+  color: var(--cream);
+}
+
+.person-dm-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--brass-dim);
+  background: none;
+  color: var(--brass-light);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.person-dm-btn:hover { background: var(--brass); color: #fff; border-color: var(--brass); }
+
+.people-empty {
+  color: var(--dim);
+  font-size: 13px;
+  padding: 14px 10px;
+  text-align: center;
 }
