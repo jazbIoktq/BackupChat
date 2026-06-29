@@ -1,14 +1,15 @@
 // client.js
 const socket = io();
 
-// --- Elements ---
+// --- Elements: join screen ---
 const joinScreen = document.getElementById('join-screen');
-const chatScreen = document.getElementById('chat-screen');
 const nameInput = document.getElementById('name-input');
 const roomInput = document.getElementById('room-input');
 const joinBtn = document.getElementById('join-btn');
 const roomListEl = document.getElementById('room-list');
 
+// --- Elements: chat screen ---
+const chatScreen = document.getElementById('chat-screen');
 const messagesEl = document.getElementById('messages');
 const form = document.getElementById('message-form');
 const input = document.getElementById('message-input');
@@ -27,13 +28,36 @@ const imagePreview = document.getElementById('image-preview');
 const imagePreviewThumb = document.getElementById('image-preview-thumb');
 const imageCancelBtn = document.getElementById('image-cancel-btn');
 
+// --- Elements: people panel ---
+const peopleBtn = document.getElementById('people-btn');
+const peoplePanel = document.getElementById('people-panel');
+const peopleCloseBtn = document.getElementById('people-close-btn');
+const peopleListEl = document.getElementById('people-list');
+
+// --- Elements: DM screen ---
+const dmScreen = document.getElementById('dm-screen');
+const dmBackBtn = document.getElementById('dm-back-btn');
+const dmNameEl = document.getElementById('dm-name');
+const dmMessagesEl = document.getElementById('dm-messages');
+const dmForm = document.getElementById('dm-form');
+const dmInput = document.getElementById('dm-input');
+const dmAttachBtn = document.getElementById('dm-attach-btn');
+const dmFileInput = document.getElementById('dm-file-input');
+const dmImagePreview = document.getElementById('dm-image-preview');
+const dmImagePreviewThumb = document.getElementById('dm-image-preview-thumb');
+const dmImageCancelBtn = document.getElementById('dm-image-cancel-btn');
+
 // --- State ---
 let myName = localStorage.getItem('chat_name') || '';
-let currentRoom = '';
-let replyingTo = null;   // { id, name, text }
-let pendingImage = null; // data URL string, ready to send
+let replyingTo = null;     // { id, name, text }
+let pendingImage = null;   // data URL, for the room composer
+let pendingDmImage = null; // data URL, for the DM composer
+let roomUsers = [];        // [{ id, name }] for the current room
+let currentDm = null;      // { id, name } of the open DM partner
 
-// --- Join flow ---
+// ============================================================
+// Join screen
+// ============================================================
 nameInput.value = myName;
 
 function renderRoomList(rooms) {
@@ -51,7 +75,16 @@ function renderRoomList(rooms) {
       <span class="room-row-name">${escapeHtml(r.name)}</span>
       <span class="room-row-count">${r.userCount} here</span>
     `;
-    row.addEventListener('click', () => { roomInput.value = r.name; });
+    // One click joins directly, as long as a name has been entered.
+    row.addEventListener('click', () => {
+      roomInput.value = r.name;
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+      attemptJoin(name, r.name);
+    });
     roomListEl.appendChild(row);
   });
 }
@@ -86,8 +119,8 @@ switchRoomBtn.addEventListener('click', () => {
 });
 
 socket.on('joined', ({ room }) => {
-  currentRoom = room;
   roomNameEl.textContent = room;
+  dmScreen.classList.add('hidden');
   joinScreen.classList.add('hidden');
   chatScreen.classList.remove('hidden');
   clearReply();
@@ -95,28 +128,28 @@ socket.on('joined', ({ room }) => {
   input.focus();
 });
 
-// --- Messages ---
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
+// ============================================================
+// Shared helpers
+// ============================================================
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
 
-function renderMessage(msg) {
+// Renders one message into a container. `isMe` decides which side it sits on.
+// `showName` and `allowReply` are off for DMs, since there's only two people
+// and no reply feature there.
+function renderMessage(container, msg, { isMe, showName = true, allowReply = true } = {}) {
   if (msg.type === 'system') {
     const row = document.createElement('div');
     row.className = 'msg-row system-row';
     row.innerHTML = `<div class="msg system">${escapeHtml(msg.text)}</div>`;
-    messagesEl.appendChild(row);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
     return;
   }
 
-  const isMe = msg.name === myName;
   const row = document.createElement('div');
   row.className = `msg-row ${isMe ? 'me' : 'other'}`;
   row.dataset.id = msg.id;
@@ -139,83 +172,28 @@ function renderMessage(msg) {
     textHtml = `<span class="msg-text">${escapeHtml(msg.text)}</span>`;
   }
 
+  const nameLabel = msg.name || msg.fromName || '';
+
   row.innerHTML = `
     <div class="msg">
-      ${isMe ? '' : `<span class="name">${escapeHtml(msg.name)}</span>`}
+      ${showName && !isMe ? `<span class="name">${escapeHtml(nameLabel)}</span>` : ''}
       ${replyHtml}
       ${imageHtml}
       ${textHtml}
     </div>
-    <div class="msg-actions">
-      <button type="button" class="reply-btn">Reply</button>
-    </div>
+    ${allowReply ? '<div class="msg-actions"><button type="button" class="reply-btn">Reply</button></div>' : ''}
   `;
 
-  row.querySelector('.reply-btn').addEventListener('click', () => {
-    startReply(msg);
-  });
+  if (allowReply) {
+    row.querySelector('.reply-btn').addEventListener('click', () => startReply(msg));
+  }
 
   const img = row.querySelector('.msg-image');
-  if (img) {
-    img.addEventListener('click', () => window.open(msg.image, '_blank'));
-  }
+  if (img) img.addEventListener('click', () => window.open(msg.image, '_blank'));
 
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
 }
-
-socket.on('history', (history) => {
-  messagesEl.innerHTML = '';
-  history.forEach(renderMessage);
-});
-
-socket.on('message', renderMessage);
-
-socket.on('user_count', (count) => {
-  userCountEl.textContent = `${count} here`;
-});
-
-socket.on('send_error', (text) => {
-  alert(text);
-});
-
-// --- Replies ---
-function startReply(msg) {
-  replyingTo = {
-    id: msg.id,
-    name: msg.name,
-    text: msg.text || (msg.image ? '📷 Image' : ''),
-  };
-  replyPreviewName.textContent = replyingTo.name;
-  replyPreviewSnippet.textContent = replyingTo.text;
-  replyPreview.classList.remove('hidden');
-  input.focus();
-}
-
-function clearReply() {
-  replyingTo = null;
-  replyPreview.classList.add('hidden');
-}
-
-replyCancelBtn.addEventListener('click', clearReply);
-
-// --- Image attach ---
-attachBtn.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', () => {
-  const file = fileInput.files[0];
-  fileInput.value = '';
-  if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    alert('Please choose an image file.');
-    return;
-  }
-  compressImage(file, (dataUrl) => {
-    pendingImage = dataUrl;
-    imagePreviewThumb.src = dataUrl;
-    imagePreview.classList.remove('hidden');
-  });
-});
 
 function compressImage(file, callback) {
   const reader = new FileReader();
@@ -244,6 +222,57 @@ function compressImage(file, callback) {
   reader.readAsDataURL(file);
 }
 
+socket.on('send_error', (text) => alert(text));
+
+// ============================================================
+// Room chat
+// ============================================================
+socket.on('history', (history) => {
+  messagesEl.innerHTML = '';
+  history.forEach((msg) => renderMessage(messagesEl, msg, { isMe: msg.name === myName }));
+});
+
+socket.on('message', (msg) => {
+  renderMessage(messagesEl, msg, { isMe: msg.name === myName });
+});
+
+socket.on('user_count', (count) => {
+  userCountEl.textContent = `${count} here`;
+});
+
+function startReply(msg) {
+  replyingTo = {
+    id: msg.id,
+    name: msg.name,
+    text: msg.text || (msg.image ? '📷 Image' : ''),
+  };
+  replyPreviewName.textContent = replyingTo.name;
+  replyPreviewSnippet.textContent = replyingTo.text;
+  replyPreview.classList.remove('hidden');
+  input.focus();
+}
+
+function clearReply() {
+  replyingTo = null;
+  replyPreview.classList.add('hidden');
+}
+
+replyCancelBtn.addEventListener('click', clearReply);
+
+attachBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  fileInput.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return; }
+  compressImage(file, (dataUrl) => {
+    pendingImage = dataUrl;
+    imagePreviewThumb.src = dataUrl;
+    imagePreview.classList.remove('hidden');
+  });
+});
+
 function clearImage() {
   pendingImage = null;
   imagePreview.classList.add('hidden');
@@ -252,19 +281,127 @@ function clearImage() {
 
 imageCancelBtn.addEventListener('click', clearImage);
 
-// --- Sending ---
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = input.value.trim();
   if (!text && !pendingImage) return;
 
-  socket.emit('chat_message', {
-    text,
-    image: pendingImage,
-    replyTo: replyingTo,
-  });
+  socket.emit('chat_message', { text, image: pendingImage, replyTo: replyingTo });
 
   input.value = '';
   clearReply();
   clearImage();
+});
+
+// ============================================================
+// People panel
+// ============================================================
+function renderPeopleList() {
+  const others = roomUsers.filter((u) => u.id !== socket.id);
+  if (others.length === 0) {
+    peopleListEl.innerHTML = '<div class="people-empty">No one else is in this room right now.</div>';
+    return;
+  }
+  peopleListEl.innerHTML = '';
+  others.forEach((u) => {
+    const row = document.createElement('div');
+    row.className = 'person-row';
+    row.innerHTML = `
+      <span class="person-name">${escapeHtml(u.name)}</span>
+      <button type="button" class="person-dm-btn">Message</button>
+    `;
+    row.querySelector('.person-dm-btn').addEventListener('click', () => openDm(u));
+    peopleListEl.appendChild(row);
+  });
+}
+
+socket.on('room_users', (list) => {
+  roomUsers = list;
+  if (!peoplePanel.classList.contains('hidden')) renderPeopleList();
+});
+
+peopleBtn.addEventListener('click', () => {
+  socket.emit('get_room_users');
+  renderPeopleList();
+  peoplePanel.classList.remove('hidden');
+});
+
+peopleCloseBtn.addEventListener('click', () => peoplePanel.classList.add('hidden'));
+peoplePanel.addEventListener('click', (e) => {
+  if (e.target === peoplePanel) peoplePanel.classList.add('hidden');
+});
+
+// ============================================================
+// Direct messages
+// ============================================================
+function openDm(user) {
+  currentDm = user;
+  dmNameEl.textContent = user.name;
+  dmMessagesEl.innerHTML = '';
+  peoplePanel.classList.add('hidden');
+  chatScreen.classList.add('hidden');
+  dmScreen.classList.remove('hidden');
+  clearDmImage();
+  socket.emit('get_dm_history', { withId: user.id });
+  dmInput.focus();
+}
+
+socket.on('dm_history', ({ withId, history }) => {
+  if (!currentDm || currentDm.id !== withId) return;
+  dmMessagesEl.innerHTML = '';
+  history.forEach((msg) => renderMessage(dmMessagesEl, msg, {
+    isMe: msg.fromId === socket.id,
+    showName: false,
+    allowReply: false,
+  }));
+});
+
+socket.on('dm_message', (msg) => {
+  const partnerId = msg.fromId === socket.id ? msg.toId : msg.fromId;
+  if (!currentDm || currentDm.id !== partnerId) return; // not the open thread
+  renderMessage(dmMessagesEl, msg, {
+    isMe: msg.fromId === socket.id,
+    showName: false,
+    allowReply: false,
+  });
+});
+
+dmBackBtn.addEventListener('click', () => {
+  currentDm = null;
+  dmScreen.classList.add('hidden');
+  chatScreen.classList.remove('hidden');
+});
+
+dmAttachBtn.addEventListener('click', () => dmFileInput.click());
+
+dmFileInput.addEventListener('change', () => {
+  const file = dmFileInput.files[0];
+  dmFileInput.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return; }
+  compressImage(file, (dataUrl) => {
+    pendingDmImage = dataUrl;
+    dmImagePreviewThumb.src = dataUrl;
+    dmImagePreview.classList.remove('hidden');
+  });
+});
+
+function clearDmImage() {
+  pendingDmImage = null;
+  dmImagePreview.classList.add('hidden');
+  dmImagePreviewThumb.src = '';
+}
+
+dmImageCancelBtn.addEventListener('click', clearDmImage);
+
+dmForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!currentDm) return;
+  const text = dmInput.value.trim();
+  if (!text && !pendingDmImage) return;
+
+  socket.emit('dm_message', { toId: currentDm.id, text, image: pendingDmImage });
+
+  dmInput.value = '';
+  clearDmImage();
 });
